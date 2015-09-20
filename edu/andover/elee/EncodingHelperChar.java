@@ -18,24 +18,28 @@ class EncodingHelperChar {
     private int codepoint;
     
     public EncodingHelperChar(int codepoint) {
-        // Not yet implemented.
+        this.codepoint = codepoint;
     }
     
     public EncodingHelperChar(byte[] utf8Bytes) {
-        // Not yet implemented.
+    	String codepoint = "";
+    	for (int i = 0; i < utf8Bytes.length; i++)
+        {
+    		codepoint = codepoint + Integer.toBinaryString(utf8Bytes[i]).substring(Integer.SIZE - Byte.SIZE);
+        }
+    	this.codepoint = Integer.parseInt(codepoint);
     }
     
     public EncodingHelperChar(char ch) {
-        // Not yet implemented.
+        // Not yet implemented
     }
     
     public int getCodepoint() {
-        // Not yet implemented.
-        return -1;
+        return codepoint;
     }
     
     public void setCodepoint(int codepoint) {
-        // Note yet implemented.
+        this.codepoint = codepoint;
     }
     
     /**
