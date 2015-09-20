@@ -25,7 +25,7 @@ class EncodingHelperChar {
     	String codepoint = "";
     	for (int i = 0; i < utf8Bytes.length; i++)
         {
-    		codepoint = codepoint + Integer.toBinaryString(utf8Bytes[i]).substring(Integer.SIZE - Byte.SIZE);
+    		// THIS IS WRONG > codepoint = codepoint + Integer.toBinaryString(utf8Bytes[i]).substring(Integer.SIZE - Byte.SIZE);
         }
     	this.codepoint = Integer.parseInt(codepoint);
     }
