@@ -22,6 +22,7 @@ class EncodingHelperChar {
     }
     
     public EncodingHelperChar(byte[] utf8Bytes) {
+    	
         // Not yet implemented.
     }
     

@@ -2,235 +2,183 @@ package edu.andover.elee;
 
 import static org.junit.Assert.*;
 
+import java.util.Arrays;
+
 import org.junit.Test;
 
 public class EncodingHelperCharTest {
 
 	@Test
-	public void testEncodingHelperCharInt() {
-		int codepoint = 123;
-		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(codepoint);
-		// Make sure codepoint is valid
-		
-		fail("Not yet implemented");
-	}
+	public void toUtf8BytesShouldReturnCorrectByteSequence() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(0x80);
+		byte[] byteArray = encodingHelperChar.toUtf8Bytes();
+		byte[] byteArrayValid = {(byte)0xC2, (byte)0x80};
 
-	@Test
-	public void testEncodingHelperCharByteArray() {
-		byte[] byteArray = {127, -128, 0};
-		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(byteArray);
-		// Make sure byteArray is valid
-		fail("Not yet implemented");
-	}
-
-	@Test
-	public void testEncodingHelperCharChar() {
-		fail("Not yet implemented");
+		assertArrayEquals(byteArrayValid, byteArray);
 	}
 	
 	@Test
-	public void testGetCodepoint() {
-		EncodingHelperChar encodingHelperChar = new EncodingHelperChar('c');
-		int codepoint = encodingHelperChar.getCodepoint();
-		
-		assertTrue(isValidCodepoint(codepoint));
+	public void setCodepointShouldThrowInvalidCodepoint() {
+		try {
+			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
+			encodingHelperChar.setCodepoint(1114112);
+			fail("Setting an invalid codepoint did not throw");
+		} catch (IllegalArgumentException e) {
+			// :)
+		}
 	}
 
 	@Test
-	public void testSetCodepoint() {
-		EncodingHelperChar encodingHelperChar = new EncodingHelperChar('c');
-		int codepoint = 1234;
-		encodingHelperChar.setCodepoint(codepoint);
+	public void overlongByteSequenceShouldThrow() {
+		try {
+			byte[] byteArray = {(byte)0xC1, (byte)0xBD};
+			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(byteArray);
+			fail("Did not throw valid byte sequence overlong");
+		} catch (IllegalArgumentException e){
+			// :]
+		}
+	}
+
+	@Test
+	public void overlongNullByteSequenceShouldThrow() {
+		try {
+			byte[] byteArray = {(byte)0xC0, (byte)0x80};
+			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(byteArray);
+			fail("Did not throw the null overlong");
+		} catch (IllegalArgumentException e) {
+			// :]
+		}
+	}
+
+	@Test
+	public void getCharacterNameShouldReturnCorrectName() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(0xA01D);
+
+		assertEquals("YI SYLLABLE BIEP", encodingHelperChar.getCharacterName());
+	}
+
+	@Test
+	public void getCharacterNameCodepoint0000ShouldBeControlNull() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(0000);
+		String specific = encodingHelperChar.getCharacterName();
+		assertEquals ("<control> NULL", specific);
+	}
+
+	@Test
+	public void getCharacterNameCodepoint0012ShouldBeControlDeviceControlTwo() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(0x12);
+		String specific = encodingHelperChar.getCharacterName();
+		assertEquals ("<control> DEVICE CONTROL TWO", specific);
+	}
+
+	@Test
+	public void getCharacterNameCodepoint0001FShouldBeIF1() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(0x1C); //TODO: Check
+		String specific = encodingHelperChar.getCharacterName();
+		assertEquals ("<control> INFORMATION SEPARATOR ONE", specific);
+	}
+
+	@Test
+	public void toCodepointStringShouldBeginWithUPlusAndNotNull() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
+		String test = encodingHelperChar.toCodepointString();
+
+		assertEquals("U+", test.substring(0, 2));
+	}
+
+	@Test
+	public void toUtf8StringShouldBeEqualProperReturnAndNotNull() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
+		String utf8String = encodingHelperChar.toUtf8String();
+
+		assertEquals("\\x7B", utf8String);
+	}
+
+	@Test
+	public void toUtf8StringShouldBeSplitBySlashSlashXAtFirstIndex() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(1461);
+		String utf8String = encodingHelperChar.toUtf8String();
+		//   \\x05\\xB5
+		assertEquals("\\x", utf8String.substring(0, 2));
+	}
+	
+	@Test
+	public void toUtf8StringShouldBeSplitBySlashSlashXAtSecondIndex() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(1461);
+		String utf8String = encodingHelperChar.toUtf8String();
+		//\\x05\\xB5
+		assertEquals("\\x", utf8String.substring(4, 6));
+	}
+
+	@Test
+	public void toUtf8StringShouldNotBeginWithUPlusAndNotNull() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
+		String test = encodingHelperChar.toUtf8String();
+
+		assertNotEquals("U+", test.substring(0, 2));
+	}
+
+	@Test
+	public void encodingHelperCharParameterShouldBeInRange() {
+		int x = -1;
+		try {
+			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(x);
+			fail("Out of range Parameter did not throw");
+		} catch (IllegalArgumentException expectedException) {
+			//Good!
+		}
+	}
+
+	@Test
+	public void encodingHelperCharIntShouldSetCodepoint() {
+		int codepoint = 123;
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(codepoint);
+
 		assertEquals(codepoint, encodingHelperChar.getCodepoint());
 	}
 
 	@Test
-	public void testToUtf8Bytes() {
-		/*
-		 * 1. Get codepoint
-		 * 2. Convert codepoint to UTF-8 Hex
-		 * 3. Return the Hex
-		 */
-		EncodingHelperChar encodingHelperChar = new EncodingHelperChar('c');
+	public void encodingHelperCharBytesCodepointShouldNotBeNullAndEqualByteArray() {
+		byte[] byteArray = {0x43};
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(byteArray);
+
+		assertEquals(67, encodingHelperChar.getCodepoint());
+	}
+
+	@Test
+	public void invalidBytesInConstructorShouldThrowException() {
+		byte[] byteArray = {(byte)0xA7};
+		try {
+			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(byteArray);
+			fail("Did not throw invalid byte");
+		} catch (IllegalArgumentException expectedException) {
+			//Nothing
+		}
+	}
+
+	@Test
+	public void encodingHelperCharCharCodepointShouldNotBeNullAndEqualParameter() {
+		char ch = 'c';
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(ch);
+
+		assertEquals(231, encodingHelperChar.getCodepoint());
+	}
+
+	@Test
+	public void encodingHelperCharIntCodepointShouldNotBeNullAndEqualInt() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
 		int codepoint = encodingHelperChar.getCodepoint();
-		
-		assertTrue(isValidCodepoint(codepoint));
-		
-		String hexStr = convertToHex(codepoint);
-		String[] hexStrArray = hexStr.split(",");
-		
-		for(int i = 0; i < hexStrArray.length; i++)
-		{
-			assertTrue(isValidHex(hexStrArray[i]));
-		}
+
+		assertEquals(codepoint, 123);
 	}
 
 	@Test
-	public void testToCodepointString() {
-		fail("Not yet implemented");
-	}
+	public void setCodepointShouldSetCodepoint() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar('c');
+		int codepoint = 1234;
 
-	@Test
-	public void testToUtf8String() {
-		fail("Not yet implemented");
-	}
+		encodingHelperChar.setCodepoint(codepoint);
 
-	@Test
-	public void testGetCharacterName() {
-		fail("Not yet implemented");
+		assertEquals(codepoint, encodingHelperChar.getCodepoint());
 	}
-	
-	/*
-	 * *************************************************************************************
-	 * End of Tests. Function code starts here
-	 * *************************************************************************************
-	 */
-	
-	public boolean isValidCodepoint(int cp)
-	{
-		return !(cp < 0 || cp > 1114111);
-	}
-	
-	public boolean isValidHex(String hex) {
-		int temp = Integer.parseInt(hex, 16);
-		return (temp < 255 || temp > 0);
-	}
-	
-	public String convertToHex(int codepoint) {
-		String str = Long.toBinaryString(codepoint);
-		String totalStrHex = "";
-		
-		int length = str.length();
-		if(length < 8)
-		{
-			String utf = String.format("%08d", Integer.parseInt(str));
-			System.out.println(utf);
-			
-			String[] utfArray = {utf.substring(0, 8)};
-			
-			for(int i = 0; i < utfArray.length; i++){
-				int decimal = Integer.parseInt(utfArray[i], 2);
-				String hexStr = Integer.toString(decimal, 16);
-				totalStrHex = totalStrHex + hexStr + ",";
-			}
-			System.out.println(totalStrHex);
-		}
-		else if (length < 12)
-		{
-			String padded = String.format("%011d", Integer.parseInt(str));
-			String firstHalf = padded.substring(0,5);
-			String secondHalf = padded.substring(5, 11);
-			String utf = "110" + firstHalf + "10" + secondHalf;
-			System.out.println(utf);
-			
-			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16)};
-			
-			for(int i = 0; i < utfArray.length; i++){
-				int decimal = Integer.parseInt(utfArray[i], 2);
-				String hexStr = Integer.toString(decimal, 16);
-				totalStrHex = totalStrHex + hexStr + ",";
-			}
-			System.out.println(totalStrHex);
-		}
-		else if (length < 17)
-		{
-			String padded = String.format("%016d", Long.parseLong(str));
-			String firstPart = padded.substring(0,4);
-			String secondPart = padded.substring(4,10);
-			String thirdPart = padded.substring(10, 16);
-			String utf = "1110" + firstPart + "10" + secondPart + "10" + thirdPart;
-			System.out.println(utf);
-			
-			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16), utf.substring(16, 24)};
-		
-			for(int i = 0; i < utfArray.length; i++){
-				int decimal = Integer.parseInt(utfArray[i], 2);
-				String hexStr = Integer.toString(decimal, 16);
-				totalStrHex = totalStrHex + hexStr + ",";
-			}
-			System.out.println(totalStrHex);
-		}
-		else if (length < 22)
-		{
-			String strFirst = str.substring(0, str.length() - 11);
-			String strSecond = str.substring(str.length() - 11, str.length());
-			
-			String paddedFirst = String.format("%011d", Long.parseLong(strFirst));
-			String padded = paddedFirst + strSecond;
-			String firstPart = padded.substring(0, 3);
-			String secondPart = padded.substring(3, 9);
-			String thirdPart = padded.substring(9, 15);
-			String fourthPart = padded.substring(15, 21);
-			String utf = "11110" + firstPart + "10" + secondPart + "10" + thirdPart + "10" + fourthPart;
-			System.out.println(utf);
-			
-			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16), utf.substring(16, 24), utf.substring(24, 32)};
-			
-			for(int i = 0; i < utfArray.length; i++){
-				int decimal = Integer.parseInt(utfArray[i], 2);
-				String hexStr = Integer.toString(decimal, 16);
-				totalStrHex = totalStrHex + hexStr + ",";
-			}
-			System.out.println(totalStrHex);
-		}
-		else if (length < 27)
-		{
-			String strFirst = str.substring(0, str.length() - 13);
-			String strSecond = str.substring(str.length() - 13, str.length());
-			
-			String paddedFirst = String.format("%013d", Long.parseLong(strFirst));
-			String padded = paddedFirst + strSecond;
-
-			String firstPart = padded.substring(0, 2);
-			String secondPart = padded.substring(2, 8);
-			String thirdPart = padded.substring(8, 14);
-			String fourthPart = padded.substring(14, 20);
-			String fifthPart = padded.substring(20, 26);
-			String utf = "111110" + firstPart + "10" + secondPart + "10" + thirdPart + "10" + fourthPart +
-					"10" + fifthPart;
-			System.out.println(utf);
-			
-			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16), utf.substring(16, 24), utf.substring(24, 32), utf.substring(32, 40)};
-			
-			for(int i = 0; i < utfArray.length; i++){
-				int decimal = Integer.parseInt(utfArray[i], 2);
-				String hexStr = Integer.toString(decimal, 16);
-				totalStrHex = totalStrHex + hexStr + ",";
-			}
-			System.out.println(totalStrHex);
-		}
-		else if (length < 32)
-		{
-			String strFirst = str.substring(0, str.length() - 16);
-			String strSecond = str.substring(str.length() - 16, str.length());
-			
-			String paddedFirst = String.format("%016d", Long.parseLong(strFirst));
-			String padded = paddedFirst + strSecond;
-			
-			String firstPart = padded.substring(0, 1);
-			String secondPart = padded.substring(1, 7);
-			String thirdPart = padded.substring(7, 13);
-			String fourthPart = padded.substring(13, 19);
-			String fifthPart = padded.substring(19, 25);
-			String sixthPart = padded.substring(25, 31);
-			String utf = "1111110" + firstPart + "10" + secondPart + "10" + thirdPart + "10" + fourthPart +
-					"10" + fifthPart + "10" + sixthPart;
-			System.out.println(utf);
-			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16), utf.substring(16, 24), utf.substring(24, 32), utf.substring(32, 40), utf.substring(40, 48)};
-		
-			for(int i = 0; i < utfArray.length; i++){
-				int decimal = Integer.parseInt(utfArray[i], 2);
-				String hexStr = Integer.toString(decimal, 16);
-				totalStrHex = totalStrHex + hexStr + ",";
-			}
-			System.out.println(totalStrHex);
-		}
-		else
-		{
-			return "FAILURE";
-		}
-		return totalStrHex;
-	}
-	
-
 }
