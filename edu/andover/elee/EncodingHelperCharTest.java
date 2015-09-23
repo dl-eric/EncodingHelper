@@ -9,15 +9,6 @@ import org.junit.Test;
 public class EncodingHelperCharTest {
 
 	@Test
-	public void encodingHelperCharShouldNotThrowValidPoint() {
-		try {
-			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(129473);
-		} catch (IllegalArgumentException e) {
-			fail("Valid Codepoint threw an exception");
-		}
-	}
-	
-	@Test
 	public void toUtf8BytesShouldReturnCorrectByteSequence() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(49792);
 		byte[] byteArray = encodingHelperChar.toUtf8Bytes();
@@ -25,7 +16,7 @@ public class EncodingHelperCharTest {
 
 		assertArrayEquals(byteArrayValid, byteArray);
 	}
-	
+
 	@Test
 	public void setCodepointShouldThrowInvalidCodepoint() {
 		try {
@@ -46,7 +37,7 @@ public class EncodingHelperCharTest {
 			// :]
 		}
 	}
-	
+
 	@Test
 	public void overlongNullIntSequenceShouldThrow() {
 		try {
@@ -56,7 +47,7 @@ public class EncodingHelperCharTest {
 			// :]
 		}
 	}
-	
+
 	@Test
 	public void overlongByteSequenceShouldThrow() {
 		try {
@@ -99,13 +90,16 @@ public class EncodingHelperCharTest {
 		String specific = encodingHelperChar.getCharacterName();
 		assertEquals("<control> INFORMATION SEPARATOR ONE", specific);
 	}
-	
+
 	@Test
 	public void getCharacterNameCodepoint0020ShouldBeSpace() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(0x20);
 		assertEquals("SPACE", encodingHelperChar.getCharacterName());
 	}
 
+	//Error Because .toCodepointString does not return proper value because
+	//Constructor is not valid. Therefore, the indexes in test.substring(0,2) will be out of bounds.
+	//For a working EncodingHelperChar, this test should be valid (Not an Error).
 	@Test
 	public void toCodepointStringShouldBeginWithUPlus() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
@@ -113,25 +107,46 @@ public class EncodingHelperCharTest {
 
 		assertEquals("U+", test.substring(0, 2));
 	}
-	
+
+	// Passes right now because EncodingHelperChar's .toCodepointString returns an empty string
+	// which length is < 8.
 	@Test
 	public void toCodepointStringShouldNotReturnStringLongerThanEightDigits() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
 		String returnedStatement = encodingHelperChar.toCodepointString();
-		
+
 		boolean lessThanEightDigits = returnedStatement.length() < 8;
-		
+
+
 		assertTrue(lessThanEightDigits);
+	}
+
+	@Test
+	public void toCodepointStringShouldNotReturnStringLessThanTwoDigits() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
+		String returnedStatement = encodingHelperChar.toCodepointString();
+
+		boolean moreThanTwoDigits = returnedStatement.length() > 2;
+
+		assertTrue(moreThanTwoDigits);
+	}
+
+	@Test
+	public void toCodepointStringShouldNotBeEmpty() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
+		String temp = encodingHelperChar.toCodepointString();
+
+		assertFalse(temp.isEmpty());
 	}
 
 	@Test
 	public void toUtf8BytesShouldHaveThreeHexPairsForE() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(31780);
 		byte[] bytes = encodingHelperChar.toUtf8Bytes();
-		
+
 		assertTrue(bytes.length == 3);
 	}
-	
+
 	@Test
 	public void toUtf8StringShouldBeEqualProperReturn() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
@@ -140,6 +155,9 @@ public class EncodingHelperCharTest {
 		assertEquals("\\x7B", utf8String);
 	}
 
+	//Error Because .toUtf8String does not return proper value because
+	//Constructor is not valid. Therefore, the indexes in test.substring(0,2) will be out of bounds.
+	//For a working EncodingHelperChar, this test should be valid (Not an Error).
 	@Test
 	public void toUtf8StringShouldBeSplitBySlashSlashXAtFirstIndex() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(1461);
@@ -147,7 +165,10 @@ public class EncodingHelperCharTest {
 		//   1461 = \\x05\\xB5 = 0101 1011 0101 -ToUtf8> 11010110 10110101 > D6 B5
 		assertEquals("\\x", utf8String.substring(0, 2));
 	}
-	
+
+	//Error Because .toUtf8String does not return proper value because
+	//Constructor is not valid. Therefore, the indexes in test.substring(4,6) will be out of bounds.
+	//For a working EncodingHelperChar, this test should be valid (Not an Error).
 	@Test
 	public void toUtf8StringShouldBeSplitBySlashSlashXAtSecondIndex() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(1461);
@@ -156,6 +177,9 @@ public class EncodingHelperCharTest {
 		assertEquals("\\x", utf8String.substring(4, 6));
 	}
 
+	//Error Because .toUtf8String does not return proper value because
+	//Constructor is not valid. Therefore, the indexes in test.substring(0,2) will be out of bounds.
+	//For a working EncodingHelperChar, this test should be valid (Not an Error).
 	@Test
 	public void toUtf8StringShouldNotBeginWithUPlus() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
@@ -174,7 +198,7 @@ public class EncodingHelperCharTest {
 			//Good!
 		}
 	}
-	
+
 	@Test
 	public void encodingHelperCharIntParameterShouldBeInRangeForPositive() {
 		int x = 1114112;
@@ -187,36 +211,6 @@ public class EncodingHelperCharTest {
 	}
 
 	@Test
-	public void encodingHelperCharByteParameterShouldNotThrowWhileInRange() {
-		byte[] bytes = {0x10, (byte)0xFF, (byte)0xFF};
-		try {
-			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(bytes);
-		} catch (IllegalArgumentException expectedException) {
-			fail("Should not have thrown!");
-		}
-	}
-	
-	@Test
-	public void encodingHelperCharIntParameterShouldNotThrowForZero() {
-		int x = 0;
-		try {
-			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(x);
-		} catch (IllegalArgumentException e) {
-			fail("Should not have thrown!");
-		}
-	}
-	
-	@Test
-	public void encodingHelperCharByteParameterShouldNotThrowForZero() {
-		byte[] bytes = {0x00};
-		try {
-			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(bytes);
-		} catch (IllegalArgumentException e) {
-			fail("Should not have thrown!");
-		}
-	}
-	
-	@Test
 	public void encodingHelperCharByteParameterShouldBeInRangeForPositive() {
 		byte[] bytes = {(byte)0x11, 0x00, 0x00};
 		try {
@@ -226,16 +220,6 @@ public class EncodingHelperCharTest {
 			//Good!
 		}
 	}
-	
-	@Test
-	public void encodingHelperCharParameterShouldPassHighestValue() {
-		int x = 1114111;
-		try {
-			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(x);
-		} catch (IllegalArgumentException expectedException) {
-			fail("Should not have thrown.");
-		}
-	}
 
 	@Test
 	public void encodingHelperCharIntShouldSetCodepoint() {
@@ -243,14 +227,6 @@ public class EncodingHelperCharTest {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(codepoint);
 
 		assertEquals(codepoint, encodingHelperChar.getCodepoint());
-	}
-
-	@Test
-	public void getCodepointForByteConstructorShouldReturnAppropriateCodepoint() {
-		byte[] byteArray = {0x43};
-		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(byteArray);
-
-		assertEquals(67, encodingHelperChar.getCodepoint());
 	}
 
 	@Test
@@ -268,18 +244,18 @@ public class EncodingHelperCharTest {
 	public void toUtf8StringShouldNotBeEmpty() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
 		String temp = encodingHelperChar.toUtf8String();
-		
+
 		assertFalse(temp.isEmpty());
 	}
-	
+
 	@Test
-	public void toCodepointStringShouldNotBeEmpty() {
-		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
-		String temp = encodingHelperChar.toCodepointString();
-		
-		assertFalse(temp.isEmpty());
+	public void getCodepointForByteConstructorShouldReturnAppropriateCodepoint() {
+		byte[] byteArray = {0x43};
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(byteArray);
+
+		assertEquals(67, encodingHelperChar.getCodepoint());
 	}
-	
+
 	@Test
 	public void getCodepointForCharConstructorShouldReturnAppropriateCodepoint() {
 		char ch = 'c';
