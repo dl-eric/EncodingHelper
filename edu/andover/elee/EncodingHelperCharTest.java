@@ -9,8 +9,17 @@ import org.junit.Test;
 public class EncodingHelperCharTest {
 
 	@Test
+	public void encodingHelperCharShouldNotThrowValidPoint() {
+		try {
+			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(129473);
+		} catch (IllegalArgumentException e) {
+			fail("Valid Codepoint threw an exception");
+		}
+	}
+	
+	@Test
 	public void toUtf8BytesShouldReturnCorrectByteSequence() {
-		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(0x80);
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(49792);
 		byte[] byteArray = encodingHelperChar.toUtf8Bytes();
 		byte[] byteArrayValid = {(byte)0xC2, (byte)0x80};
 
@@ -29,11 +38,31 @@ public class EncodingHelperCharTest {
 	}
 
 	@Test
+	public void overlongIntSequenceShouldThrow() {
+		try {
+			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(49597);
+			fail("Did not throw invalid byte sequence overlong");
+		} catch (IllegalArgumentException e){
+			// :]
+		}
+	}
+	
+	@Test
+	public void overlongNullIntSequenceShouldThrow() {
+		try {
+			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(49280);
+			fail("Did not throw invalid byte sequence null overlong");
+		} catch (IllegalArgumentException e){
+			// :]
+		}
+	}
+	
+	@Test
 	public void overlongByteSequenceShouldThrow() {
 		try {
 			byte[] byteArray = {(byte)0xC1, (byte)0xBD};
 			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(byteArray);
-			fail("Did not throw valid byte sequence overlong");
+			fail("Did not throw invalid byte sequence overlong");
 		} catch (IllegalArgumentException e){
 			// :]
 		}
@@ -52,7 +81,7 @@ public class EncodingHelperCharTest {
 
 	@Test
 	public void getCharacterNameShouldReturnCorrectName() {
-		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(0xA01D);
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(40989);
 
 		assertEquals("YI SYLLABLE BIEP", encodingHelperChar.getCharacterName());
 	}
@@ -61,33 +90,50 @@ public class EncodingHelperCharTest {
 	public void getCharacterNameCodepoint0000ShouldBeControlNull() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(0000);
 		String specific = encodingHelperChar.getCharacterName();
-		assertEquals ("<control> NULL", specific);
+		assertEquals("<control> NULL", specific);
 	}
 
 	@Test
-	public void getCharacterNameCodepoint0012ShouldBeControlDeviceControlTwo() {
-		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(0x12);
+	public void getCharacterNameCodepoint1FShouldBeControlInformationSeperatorOne() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(0x1F);
 		String specific = encodingHelperChar.getCharacterName();
-		assertEquals ("<control> DEVICE CONTROL TWO", specific);
+		assertEquals("<control> INFORMATION SEPARATOR ONE", specific);
+	}
+	
+	@Test
+	public void getCharacterNameCodepoint0020ShouldBeSpace() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(0x20);
+		assertEquals("SPACE", encodingHelperChar.getCharacterName());
 	}
 
 	@Test
-	public void getCharacterNameCodepoint0001FShouldBeIF1() {
-		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(0x1C); //TODO: Check
-		String specific = encodingHelperChar.getCharacterName();
-		assertEquals ("<control> INFORMATION SEPARATOR ONE", specific);
-	}
-
-	@Test
-	public void toCodepointStringShouldBeginWithUPlusAndNotNull() {
+	public void toCodepointStringShouldBeginWithUPlus() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
 		String test = encodingHelperChar.toCodepointString();
 
 		assertEquals("U+", test.substring(0, 2));
 	}
+	
+	@Test
+	public void toCodepointStringShouldNotReturnStringLongerThanEightDigits() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
+		String returnedStatement = encodingHelperChar.toCodepointString();
+		
+		boolean lessThanEightDigits = returnedStatement.length() < 8;
+		
+		assertTrue(lessThanEightDigits);
+	}
 
 	@Test
-	public void toUtf8StringShouldBeEqualProperReturnAndNotNull() {
+	public void toUtf8BytesShouldHaveThreeHexPairsForE() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(31780);
+		byte[] bytes = encodingHelperChar.toUtf8Bytes();
+		
+		assertTrue(bytes.length == 3);
+	}
+	
+	@Test
+	public void toUtf8StringShouldBeEqualProperReturn() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
 		String utf8String = encodingHelperChar.toUtf8String();
 
@@ -98,7 +144,7 @@ public class EncodingHelperCharTest {
 	public void toUtf8StringShouldBeSplitBySlashSlashXAtFirstIndex() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(1461);
 		String utf8String = encodingHelperChar.toUtf8String();
-		//   \\x05\\xB5
+		//   1461 = \\x05\\xB5 = 0101 1011 0101 -ToUtf8> 11010110 10110101 > D6 B5
 		assertEquals("\\x", utf8String.substring(0, 2));
 	}
 	
@@ -106,12 +152,12 @@ public class EncodingHelperCharTest {
 	public void toUtf8StringShouldBeSplitBySlashSlashXAtSecondIndex() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(1461);
 		String utf8String = encodingHelperChar.toUtf8String();
-		//\\x05\\xB5
+		//   1461 = \\x05\\xB5 = 0101 1011 0101 -ToUtf8> 11010110 10110101 > D6 B5
 		assertEquals("\\x", utf8String.substring(4, 6));
 	}
 
 	@Test
-	public void toUtf8StringShouldNotBeginWithUPlusAndNotNull() {
+	public void toUtf8StringShouldNotBeginWithUPlus() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
 		String test = encodingHelperChar.toUtf8String();
 
@@ -119,13 +165,75 @@ public class EncodingHelperCharTest {
 	}
 
 	@Test
-	public void encodingHelperCharParameterShouldBeInRange() {
+	public void encodingHelperCharParameterShouldNotBeInRangeForNegative() {
 		int x = -1;
 		try {
 			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(x);
 			fail("Out of range Parameter did not throw");
 		} catch (IllegalArgumentException expectedException) {
 			//Good!
+		}
+	}
+	
+	@Test
+	public void encodingHelperCharIntParameterShouldBeInRangeForPositive() {
+		int x = 1114112;
+		try {
+			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(x);
+			fail("Out of range Parameter did not throw");
+		} catch (IllegalArgumentException expectedException) {
+			//Good!
+		}
+	}
+
+	@Test
+	public void encodingHelperCharByteParameterShouldNotThrowWhileInRange() {
+		byte[] bytes = {0x10, (byte)0xFF, (byte)0xFF};
+		try {
+			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(bytes);
+		} catch (IllegalArgumentException expectedException) {
+			fail("Should not have thrown!");
+		}
+	}
+	
+	@Test
+	public void encodingHelperCharIntParameterShouldNotThrowForZero() {
+		int x = 0;
+		try {
+			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(x);
+		} catch (IllegalArgumentException e) {
+			fail("Should not have thrown!");
+		}
+	}
+	
+	@Test
+	public void encodingHelperCharByteParameterShouldNotThrowForZero() {
+		byte[] bytes = {0x00};
+		try {
+			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(bytes);
+		} catch (IllegalArgumentException e) {
+			fail("Should not have thrown!");
+		}
+	}
+	
+	@Test
+	public void encodingHelperCharByteParameterShouldBeInRangeForPositive() {
+		byte[] bytes = {(byte)0x11, 0x00, 0x00};
+		try {
+			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(bytes);
+			fail("Out of range Parameter did not throw");
+		} catch (IllegalArgumentException expectedException) {
+			//Good!
+		}
+	}
+	
+	@Test
+	public void encodingHelperCharParameterShouldPassHighestValue() {
+		int x = 1114111;
+		try {
+			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(x);
+		} catch (IllegalArgumentException expectedException) {
+			fail("Should not have thrown.");
 		}
 	}
 
@@ -138,7 +246,7 @@ public class EncodingHelperCharTest {
 	}
 
 	@Test
-	public void encodingHelperCharBytesCodepointShouldNotBeNullAndEqualByteArray() {
+	public void getCodepointForByteConstructorShouldReturnAppropriateCodepoint() {
 		byte[] byteArray = {0x43};
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(byteArray);
 
@@ -157,7 +265,23 @@ public class EncodingHelperCharTest {
 	}
 
 	@Test
-	public void encodingHelperCharCharCodepointShouldNotBeNullAndEqualParameter() {
+	public void toUtf8StringShouldNotBeEmpty() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
+		String temp = encodingHelperChar.toUtf8String();
+		
+		assertFalse(temp.isEmpty());
+	}
+	
+	@Test
+	public void toCodepointStringShouldNotBeEmpty() {
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
+		String temp = encodingHelperChar.toCodepointString();
+		
+		assertFalse(temp.isEmpty());
+	}
+	
+	@Test
+	public void getCodepointForCharConstructorShouldReturnAppropriateCodepoint() {
 		char ch = 'c';
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(ch);
 
@@ -165,7 +289,7 @@ public class EncodingHelperCharTest {
 	}
 
 	@Test
-	public void encodingHelperCharIntCodepointShouldNotBeNullAndEqualInt() {
+	public void getCodepointForIntConstructorShouldReturnAppropriateCodepoint() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(123);
 		int codepoint = encodingHelperChar.getCodepoint();
 
