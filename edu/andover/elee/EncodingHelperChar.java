@@ -20,6 +20,8 @@ import java.util.Scanner;
  * character, etc.
  * 
  * @author Jadrian Miles
+ * 
+ * Implementation by Eric and Diana
  */
 class EncodingHelperChar {
 	private int codepoint;
@@ -33,19 +35,22 @@ class EncodingHelperChar {
 	}
 
 	public EncodingHelperChar(byte[] utf8Bytes) {
-		//TODO: isValidUtf8Bytes
-		try {
-			String bytesAsString = new String(utf8Bytes, "UTF-8");
+		if(isValidUtf8ByteArray(utf8Bytes)) {
+			try {
+				String bytesAsString = new String(utf8Bytes, "UTF-8");
 
-			char d = bytesAsString.charAt(0);
-			int decimal = (int)d;
-			if (isValidCodepoint(decimal))
-				codepoint = decimal;
-			else
-				throw new IllegalArgumentException("Illegal Byte Sequence");
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
+				char d = bytesAsString.charAt(0);
+				int decimal = (int)d;
+				if (isValidCodepoint(decimal))
+					codepoint = decimal;
+				else
+					throw new IllegalArgumentException("Illegal Byte Sequence");
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			}
 		}
+		else
+			throw new IllegalArgumentException("Illegal Byte Sequence");
 	}
 
 	public EncodingHelperChar(char ch) {
@@ -145,7 +150,8 @@ class EncodingHelperChar {
 		for(int r = 0; r < 29215; r++) {
 			int unicodePoint = Integer.parseInt(unicodeData[r][0], 16);
 
-			if (codepoint == unicodePoint && unicodeData[r][1].equals("<control>")){
+			if (codepoint == unicodePoint 
+					&& unicodeData[r][1].equals("<control>")){
 				return unicodeData[r][1] + " " + unicodeData[r][10];
 			}
 			if (codepoint == unicodePoint) {
@@ -161,9 +167,9 @@ class EncodingHelperChar {
 	}
 
 	/*
-	 * ****************************************************************************
+	 * ************************************************************************
 	 * Helper Functions
-	 * ****************************************************************************
+	 * ************************************************************************
 	 */
 
 	public String[][] getUnicodeData() {
@@ -188,7 +194,8 @@ class EncodingHelperChar {
 			}
 			scanner.close();
 		} catch (FileNotFoundException e) {
-			System.out.println("File not found! Make sure it's in: " + System.getProperty("user.dir"));
+			System.out.println("File not found! Make sure it's in: " 
+					+ System.getProperty("user.dir"));
 			e.printStackTrace();
 		}
 
@@ -196,117 +203,75 @@ class EncodingHelperChar {
 	}
 
 	public boolean isValidCodepoint(int codepoint) {
-		return codepoint > 0 || codepoint <= 1114111;
+		return (codepoint >= 0 && codepoint <= 1114111);
 	}
 
 	public String hexToBin(String b) {
 		return new BigInteger(b, 16).toString(2);
 	}
-	public boolean isValidUtf8Byte (String b) {
+	public boolean isValidUtf8ByteArray (byte[] b) {
+		int expectedLength;
 
-		String binString = hexToBin(b);
-		//	     1 pair:
-		//	         [0-7] [0-f]
-		if (b.length() == 2) {
-			String firstHexDigit = binString.substring(0, 4);
-			int integerRep1 = Integer.parseInt(firstHexDigit);
-			if (integerRep1 > 0 && integerRep1 < 0111) {
-				return true;
-			} else {
-				throw new IllegalArgumentException("First digit is not somewhere from 0-7");
-			}
-		} 
-		//	     2 pairs:
-		//	         [c-d] [2-f], [8-b] [0-f]
-		else if (b.length() == 4) {
-			String firstHexDigit = binString.substring(0, 4);
-			int integerRep1 = Integer.parseInt(firstHexDigit);
-			if (integerRep1 > 1100 && integerRep1 < 1101) {
-				String secondHexDigit = binString.substring(4, 8);
-				int integerRep2 = Integer.parseInt(secondHexDigit);
-				if (integerRep2 > 0010 && integerRep2 < 1111) {
-					String thirdHexDigit = binString.substring(8, 12);
-					int integerRep3 = Integer.parseInt(thirdHexDigit);
-					if (integerRep3 > 1000 && integerRep3 < 1011) {
-						return true;
-					} else {
-						throw new IllegalArgumentException("Third digit is not somewhere from 8-b");
-					}
-				} else {
-					throw new IllegalArgumentException("Second digit is not somewhere from 2-f");
-				}
-			} else {
-				throw new IllegalArgumentException("Third digit is not somewhere from c-d");
-			}
+		//Check length
+		if      (b.length == 0)
+			return false;
+		else if ((b[0] & 0b10000000) == 0b00000000) 
+			expectedLength = 1;
+		else if ((b[0] & 0b11100000) == 0b11000000) 
+			expectedLength = 2;
+		else if ((b[0] & 0b11110000) == 0b11100000) 
+			expectedLength = 3;
+		else if ((b[0] & 0b11111000) == 0b11110000) 
+			expectedLength = 4;
+		else if ((b[0] & 0b11111100) == 0b11111000) 
+			expectedLength = 5;
+		else if ((b[0] & 0b11111110) == 0b11111100) 
+			expectedLength = 6;
+		else    
+			return false;
+
+		if (expectedLength != b.length) 
+			return false;
+
+		//Looks for 10xxxxxx headers
+		for (int i = 1; i < b.length; i++) {
+			if ((b[i] & 0b11000000) != 0b10000000)
+				return false;
 		}
 
-		//	     3 pairs:
-		//	         e [0-7], [a-b] [0-f], [8-b] [0-f]
-
-		else if (b.length() == 6) {
-			String firstHexDigit = binString.substring(0, 4);
-			int integerRep1 = Integer.parseInt(firstHexDigit);
-			if (integerRep1 == 1110) {
-				String secondHexDigit = binString.substring(4, 8);
-				int integerRep2 = Integer.parseInt(secondHexDigit);
-				if (integerRep2 > 0000 && integerRep2 < 0111) {
-					String thirdHexDigit = binString.substring(8, 12);
-					int integerRep3 = Integer.parseInt(thirdHexDigit);
-					if (integerRep3 > 1010 && integerRep3 < 1011) {
-						String fifthHexDigit = binString.substring(16, 20);
-						int integerRep5 = Integer.parseInt(fifthHexDigit);
-						if (integerRep5 > 1000 && integerRep5 < 1011) {
-							return true;
-						} else {
-							throw new IllegalArgumentException("Fifth digit is not somewhere from 8-b");
-						}
-					} else {
-						throw new IllegalArgumentException("Third digit is not somewhere from a-b");
-					}
-				} else {
-					throw new IllegalArgumentException("Second digit is not somewhere from 0-7");
+		//Check for overlong
+		//TODO:Test code
+		switch(expectedLength) {
+		case 2:
+			if((b[0] & 0b11011110) == 0b11000000)
+				return false;
+			return !((b[0] & 0b11011111) == 0b11000000);
+		case 3:
+			if((b[0] & 0b11101111) == 0b11100000){
+				if((b[1] & 0b10100000) == 0b10000000){
+					return false;
 				}
-			} else {
-				throw new IllegalArgumentException("First digit is not e");
 			}
-		} 
-
-		// 4 pairs:
-		// f [0-7], [9-b] [0-f], [8-b] [0-f], [8-b] [0-f]
-		else if (b.length() == 8) {
-			String firstHexDigit = binString.substring(0, 4);
-			int integerRep1 = Integer.parseInt(firstHexDigit);
-			if (integerRep1 == 1111) {
-				String secondHexDigit = binString.substring(4, 8);
-				int integerRep2 = Integer.parseInt(secondHexDigit);
-				if (integerRep2 > 0000 && integerRep2 < 0111) {
-					String thirdHexDigit = binString.substring(8, 12);
-					int integerRep3 = Integer.parseInt(thirdHexDigit);
-					if (integerRep3 > 1001 && integerRep3 < 1011) {
-						String fifthHexDigit = binString.substring(16, 20);
-						int integerRep5 = Integer.parseInt(fifthHexDigit);
-						if (integerRep5 > 1000 & integerRep5 < 1011) {
-							String seventhHexDigit = binString.substring(24, 28);
-							int integerRep7 = Integer.parseInt(seventhHexDigit);
-							if (integerRep7 > 1000 && integerRep7 < 1011) {
-								return true;
-							} else {
-								throw new IllegalArgumentException("Seventh digit is not somewhere from 8-b");
-							}
-						} else {
-							throw new IllegalArgumentException("Fifth digit is not somewhere from 8-b");
-						}
-					} else {
-						throw new IllegalArgumentException("Third digit is not somewhere from 9-b");
-					}
-				} else {
-					throw new IllegalArgumentException("Second digit is not somewhere from 0-7");
+		case 4:
+			if((b[0] & 0b11110111) == 0b11110000) {
+				if((b[1] & 0b10110000) == 0b10000000) {
+					return false;
 				}
-			} else {
-				throw new IllegalArgumentException("First digit is not f");
+			}
+		case 5:
+			if((b[0] & 0b11111011) == 0b11111000) {
+				if((b[1] & 0b10111000) == 0b10000000) {
+					return false;
+				}
+			}
+		case 6:
+			if((b[0] & 0b11111101) == 0b11111100) {
+				if((b[1] & 0b10111100) == 0b10000000) {
+					return false;
+				}
 			}
 		}
-		return false;
+		return true;
 	}
 
 	public String convertToUtf8Hex(int codepoint) {
@@ -328,11 +293,10 @@ class EncodingHelperChar {
 		}
 		else if (length < 12)
 		{
-			String padded = String.format("%011d", Integer.parseInt(str));
+			String padded = String.format("%011d", Long.parseLong(str));
 			String firstHalf = padded.substring(0,5);
 			String secondHalf = padded.substring(5, 11);
 			String utf = "110" + firstHalf + "10" + secondHalf;
-			System.out.println(utf);
 
 			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16)};
 			String totalStrHex = "";
@@ -349,10 +313,11 @@ class EncodingHelperChar {
 			String firstPart = padded.substring(0,4);
 			String secondPart = padded.substring(4,10);
 			String thirdPart = padded.substring(10, 16);
-			String utf = "1110" + firstPart + "10" + secondPart + "10" + thirdPart;
-			System.out.println(utf);
+			String utf = "1110" + firstPart + "10" + secondPart + "10" 
+					+ thirdPart;
 
-			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16), utf.substring(16, 24)};
+			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16), 
+					utf.substring(16, 24)};
 			String totalStrHex = "";
 			for(int i = 0; i < utfArray.length; i++){
 				int decimal = Integer.parseInt(utfArray[i], 2);
@@ -366,16 +331,18 @@ class EncodingHelperChar {
 			String strFirst = str.substring(0, str.length() - 11);
 			String strSecond = str.substring(str.length() - 11, str.length());
 
-			String paddedFirst = String.format("%011d", Long.parseLong(strFirst));
+			String paddedFirst = String.format("%011d", 
+					Long.parseLong(strFirst));
 			String padded = paddedFirst + strSecond;
 			String firstPart = padded.substring(0, 3);
 			String secondPart = padded.substring(3, 9);
 			String thirdPart = padded.substring(9, 15);
 			String fourthPart = padded.substring(15, 21);
-			String utf = "11110" + firstPart + "10" + secondPart + "10" + thirdPart + "10" + fourthPart;
-			System.out.println(utf);
+			String utf = "11110" + firstPart + "10" + secondPart + "10" 
+					+ thirdPart + "10" + fourthPart;
 
-			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16), utf.substring(16, 24), utf.substring(24, 32)};
+			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16), 
+					utf.substring(16, 24), utf.substring(24, 32)};
 			String totalStrHex = "";
 			for(int i = 0; i < utfArray.length; i++){
 				int decimal = Integer.parseInt(utfArray[i], 2);
@@ -389,7 +356,8 @@ class EncodingHelperChar {
 			String strFirst = str.substring(0, str.length() - 13);
 			String strSecond = str.substring(str.length() - 13, str.length());
 
-			String paddedFirst = String.format("%013d", Long.parseLong(strFirst));
+			String paddedFirst = String.format("%013d", 
+					Long.parseLong(strFirst));
 			String padded = paddedFirst + strSecond;
 
 			String firstPart = padded.substring(0, 2);
@@ -397,11 +365,13 @@ class EncodingHelperChar {
 			String thirdPart = padded.substring(8, 14);
 			String fourthPart = padded.substring(14, 20);
 			String fifthPart = padded.substring(20, 26);
-			String utf = "111110" + firstPart + "10" + secondPart + "10" + thirdPart + "10" + fourthPart +
+			String utf = "111110" + firstPart + "10" + secondPart + "10" 
+					+ thirdPart + "10" + fourthPart +
 					"10" + fifthPart;
-			System.out.println(utf);
 
-			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16), utf.substring(16, 24), utf.substring(24, 32), utf.substring(32, 40)};
+			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16), 
+					utf.substring(16, 24), utf.substring(24, 32), 
+					utf.substring(32, 40)};
 			String totalStrHex = "";
 			for(int i = 0; i < utfArray.length; i++){
 				int decimal = Integer.parseInt(utfArray[i], 2);
@@ -415,7 +385,8 @@ class EncodingHelperChar {
 			String strFirst = str.substring(0, str.length() - 16);
 			String strSecond = str.substring(str.length() - 16, str.length());
 
-			String paddedFirst = String.format("%016d", Long.parseLong(strFirst));
+			String paddedFirst = String.format("%016d", 
+					Long.parseLong(strFirst));
 			String padded = paddedFirst + strSecond;
 
 			String firstPart = padded.substring(0, 1);
@@ -424,10 +395,13 @@ class EncodingHelperChar {
 			String fourthPart = padded.substring(13, 19);
 			String fifthPart = padded.substring(19, 25);
 			String sixthPart = padded.substring(25, 31);
-			String utf = "1111110" + firstPart + "10" + secondPart + "10" + thirdPart + "10" + fourthPart +
+			String utf = "1111110" + firstPart + "10" + secondPart + "10" 
+					+ thirdPart + "10" + fourthPart +
 					"10" + fifthPart + "10" + sixthPart;
-			System.out.println(utf);
-			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16), utf.substring(16, 24), utf.substring(24, 32), utf.substring(32, 40), utf.substring(40, 48)};
+		
+			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16), 
+					utf.substring(16, 24), utf.substring(24, 32), 
+					utf.substring(32, 40), utf.substring(40, 48)};
 			String totalStrHex = "";
 			for(int i = 0; i < utfArray.length; i++){
 				int decimal = Integer.parseInt(utfArray[i], 2);

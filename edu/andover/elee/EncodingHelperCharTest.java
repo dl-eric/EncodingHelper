@@ -21,7 +21,7 @@ public class EncodingHelperCharTest {
 	public void toUtf8BytesShouldReturnCorrectByteSequence() {
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(49792);
 		byte[] byteArray = encodingHelperChar.toUtf8Bytes();
-		byte[] byteArrayValid = {(byte)0xC2, (byte)0x80};
+		byte[] byteArrayValid = {(byte)0xEC, (byte)0x8A, (byte)0x80};
 
 		assertArrayEquals(byteArrayValid, byteArray);
 	}
@@ -34,26 +34,6 @@ public class EncodingHelperCharTest {
 			fail("Setting an invalid codepoint did not throw");
 		} catch (IllegalArgumentException e) {
 			// :)
-		}
-	}
-
-	@Test
-	public void overlongIntSequenceShouldThrow() {
-		try {
-			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(49597);
-			fail("Did not throw invalid byte sequence overlong");
-		} catch (IllegalArgumentException e){
-			// :]
-		}
-	}
-	
-	@Test
-	public void overlongNullIntSequenceShouldThrow() {
-		try {
-			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(49280);
-			fail("Did not throw invalid byte sequence null overlong");
-		} catch (IllegalArgumentException e){
-			// :]
 		}
 	}
 	
@@ -188,7 +168,7 @@ public class EncodingHelperCharTest {
 
 	@Test
 	public void encodingHelperCharByteParameterShouldNotThrowWhileInRange() {
-		byte[] bytes = {0x10, (byte)0xFF, (byte)0xFF};
+		byte[] bytes = {(byte)0xF2, (byte)0x87, (byte)0xBF, (byte)0xBF};
 		try {
 			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(bytes);
 		} catch (IllegalArgumentException expectedException) {
@@ -285,7 +265,7 @@ public class EncodingHelperCharTest {
 		char ch = 'c';
 		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(ch);
 
-		assertEquals(231, encodingHelperChar.getCodepoint());
+		assertEquals(99, encodingHelperChar.getCodepoint());
 	}
 
 	@Test
