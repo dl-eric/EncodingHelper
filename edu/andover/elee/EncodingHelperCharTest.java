@@ -9,6 +9,12 @@ import org.junit.Test;
 public class EncodingHelperCharTest {
 
 	@Test
+	public void encodingHelperCharUnassignedCodepointShouldFollowFormat(){
+		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(0x3FFF);
+		assertEquals("<unknown> U+3FFF", encodingHelperChar.getCharacterName());
+	}
+	
+	@Test
 	public void encodingHelperCharShouldNotThrowValidPoint() {
 		try {
 			EncodingHelperChar encodingHelperChar = new EncodingHelperChar(129473);
