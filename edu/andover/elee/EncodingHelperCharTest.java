@@ -7,12 +7,6 @@ import java.util.Arrays;
 import org.junit.Test;
 
 public class EncodingHelperCharTest {
-
-	@Test
-	public void convertToUtf8HexStringShouldConvertUndefinedButValidCodepoints(){
-		EncodingHelperChar encodingHelperChar = new EncodingHelperChar(0x3FFF);
-		assertEquals("E3BFBF", encodingHelperChar.convertToUtf8HexString(0x3FFF));
-	}
 	
 	@Test
 	public void encodingHelperCharUnassignedCodepointShouldFollowFormat(){
