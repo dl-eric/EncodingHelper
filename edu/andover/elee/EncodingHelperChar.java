@@ -419,7 +419,6 @@ class EncodingHelperChar {
 		}
 	}
 	
-	
 	private byte[] convertToUtf8HexByteArray(int codepoint) {
 		char c = (char)codepoint;
 		String temp = c + "";
