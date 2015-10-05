@@ -58,10 +58,42 @@ public class EncodingHelper {
 		if(foundInput && foundOutput) {
 			data = args[4];
 			dataIndex = 4;
-		} else if (foundInput || foundOutput) {
+		} else if (foundInput) {
 			data = args[2];
 			dataIndex = 2;
+		} else if (foundOutput) {
+			data = args[2];
+			dataIndex = 2;
+			/*
+			 * Infer user input
+			 */
+			EncodingHelperParser ehp;
+			if(data.contains("U+")) {
+				ehp = new EncodingHelperParser("codepoint", data);
+			}
+			else if(data.contains("\\x")) {
+				ehp = new EncodingHelperParser("utf8", data);
+			} else {
+				ehp = new EncodingHelperParser("string", data);
+			}
+			if(args[outputIndex].equals("string")) {
+				ehp.printString();
+				System.exit(0);
+			}
+			if(args[outputIndex].equals("codepoint")) {
+				ehp.printCodepoint();
+				System.exit(0);
+			}
+			if(args[outputIndex].equals("summary")) {
+				ehp.printSummary();
+				System.exit(0);
+			}
+			if(args[outputIndex].equals("utf8")) {
+				ehp.printUtf8();
+				System.exit(0);
+			}
 		} else {
+
 			data = args[0];
 			dataIndex = 0;
 			/*
