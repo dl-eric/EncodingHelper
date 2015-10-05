@@ -22,6 +22,7 @@ import java.util.Scanner;
  * @author Jadrian Miles
  * 
  * Implementation by Eric and Diana
+ * Help from stackoverflow.com
  */
 class EncodingHelperChar {
 	private int codepoint;
@@ -54,8 +55,8 @@ class EncodingHelperChar {
 	}
 
 	public EncodingHelperChar(char ch) {
-		if(isValidCodepoint((int)ch))
-			codepoint = (int)ch;
+		if(isValidCodepoint(Character.codePointAt(new char[]{ch}, 0)))
+			codepoint = Character.codePointAt(new char[]{ch}, 0);
 		else
 			throw new IllegalArgumentException("Illegal Character");
 	}
@@ -123,7 +124,8 @@ class EncodingHelperChar {
 	 * @return the escaped hexadecimal byte string
 	 */
 	public String toUtf8String() {
-		String utf8Hex = convertToUtf8HexString(codepoint);
+		String utf8Hex = bytesToHex(convertToUtf8HexString
+				(new byte[]{(byte)codepoint}));
 
 		String utf8HexToSplit = utf8Hex.replaceAll("..(?!$)", "$0:");
 		String[] utf8HexSplit = utf8HexToSplit.split(":");
@@ -147,7 +149,7 @@ class EncodingHelperChar {
 	public String getCharacterName() {
 		int temp = 0;
 		boolean found = false;
-		for(int r = 0; r < 29215; r++) {
+		for(int r = 0; r < 29215; r++) {	
 			int unicodePoint = Integer.parseInt(unicodeData[r][0], 16);
 
 			if (codepoint == unicodePoint 
@@ -206,9 +208,17 @@ class EncodingHelperChar {
 		return (codepoint >= 0 && codepoint <= 1114111);
 	}
 
-	private String hexToBin(String b) {
-		return new BigInteger(b, 16).toString(2);
+	private String bytesToHex(byte[] bytes) {
+		char[] hexArray = "0123456789ABCDEF".toCharArray();
+		char[] hexChars = new char[bytes.length * 2];
+		for ( int i = 0; i < bytes.length; i++ ) {
+			int v = bytes[i] & 0xFF;
+			hexChars[i * 2] = hexArray[v >>> 4];
+			hexChars[i * 2 + 1] = hexArray[v & 0x0F];
+		}
+		return new String(hexChars);
 	}
+
 	private boolean isValidUtf8ByteArray (byte[] b) {
 		int expectedLength;
 
@@ -273,158 +283,79 @@ class EncodingHelperChar {
 		return true;
 	}
 
-	private String convertToUtf8HexString(int codepoint) {
-		/*
-		 * Sorry Dr. Miles. Diana and I ran out of time so we're using our old
-		 * code which uses Strings as intermediates.
-		 */
-		String str = Long.toBinaryString(codepoint);
-
-		int length = str.length();
-		if(length < 8)
-		{
-			String utf = String.format("%08d", Integer.parseInt(str));
-
-			String[] utfArray = {utf.substring(0, 8)};
-			String totalStrHex = "";
-			for(int i = 0; i < utfArray.length; i++){
-				int decimal = Integer.parseInt(utfArray[i], 2);
-				String hexStr = Integer.toString(decimal, 16);
-				totalStrHex = totalStrHex + hexStr;
+	private byte[] convertToUtf8HexString(byte[] b) {
+		//Check length
+		if (b.length == 1) {
+			if ((b[0] & 0b10000000) == 0b00000000) {
+				return b;
+			}   
+			else {
+				byte[] returnedByteArray = {(byte) ((b[0] >>> 6) & 0b11000011), 
+						(byte) (b[0] & 0b10111111)};
+				return returnedByteArray;
 			}
-			return totalStrHex;
 		}
-		else if (length < 12)
-		{
-			String padded = String.format("%011d", Long.parseLong(str));
-			String firstHalf = padded.substring(0,5);
-			String secondHalf = padded.substring(5, 11);
-			String utf = "110" + firstHalf + "10" + secondHalf;
-
-			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16)};
-			String totalStrHex = "";
-			for(int i = 0; i < utfArray.length; i++){
-				int decimal = Integer.parseInt(utfArray[i], 2);
-				String hexStr = Integer.toString(decimal, 16);
-				totalStrHex = totalStrHex + hexStr;
+		else if (b.length == 2) {
+			if ((b[0] & 0b11111111) == 0b00000000) {
+				byte[] actualByteArray = {b[1]};
+				return convertToUtf8HexString(actualByteArray);
 			}
-			return totalStrHex;
-		}
-		else if (length < 17)
-		{
-			String padded = String.format("%016d", Long.parseLong(str));
-			String firstPart = padded.substring(0,4);
-			String secondPart = padded.substring(4,10);
-			String thirdPart = padded.substring(10, 16);
-			String utf = "1110" + firstPart + "10" + secondPart + "10" 
-					+ thirdPart;
-
-			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16), 
-					utf.substring(16, 24)};
-			String totalStrHex = "";
-			for(int i = 0; i < utfArray.length; i++){
-				int decimal = Integer.parseInt(utfArray[i], 2);
-				String hexStr = Integer.toString(decimal, 16);
-				totalStrHex = totalStrHex + hexStr;
+			else if ((b[0] & 0b11111000) == 0b00000000) {
+				byte[] returnedByteArray = {(byte) ((byte) (((byte) (b[0] << 2)) | b[1] >> 6) | 10), (byte) ((b[1] & 0b00111111) | 0b10000000)};
+				return returnedByteArray;
 			}
-			return totalStrHex;
-		}
-		else if (length < 22)
-		{
-			String strFirst = str.substring(0, str.length() - 11);
-			String strSecond = str.substring(str.length() - 11, str.length());
-
-			String paddedFirst = String.format("%011d", 
-					Long.parseLong(strFirst));
-			String padded = paddedFirst + strSecond;
-			String firstPart = padded.substring(0, 3);
-			String secondPart = padded.substring(3, 9);
-			String thirdPart = padded.substring(9, 15);
-			String fourthPart = padded.substring(15, 21);
-			String utf = "11110" + firstPart + "10" + secondPart + "10" 
-					+ thirdPart + "10" + fourthPart;
-
-			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16), 
-					utf.substring(16, 24), utf.substring(24, 32)};
-			String totalStrHex = "";
-			for(int i = 0; i < utfArray.length; i++){
-				int decimal = Integer.parseInt(utfArray[i], 2);
-				String hexStr = Integer.toString(decimal, 16);
-				totalStrHex = totalStrHex + hexStr + ",";
+			else {
+				byte[] returnedByteArray = {(byte) ((b[0] >> 4) | 0b11100000), (byte) (((((byte) (b[0] << 2)) & 00111111) | 0b10000000) | (b[1] >> 6)), (byte) ((b[1] & 0b00111111) | 0b10000000)};
+				return returnedByteArray;
 			}
-			return totalStrHex;
 		}
-		else if (length < 27)
-		{
-			String strFirst = str.substring(0, str.length() - 13);
-			String strSecond = str.substring(str.length() - 13, str.length());
-
-			String paddedFirst = String.format("%013d", 
-					Long.parseLong(strFirst));
-			String padded = paddedFirst + strSecond;
-
-			String firstPart = padded.substring(0, 2);
-			String secondPart = padded.substring(2, 8);
-			String thirdPart = padded.substring(8, 14);
-			String fourthPart = padded.substring(14, 20);
-			String fifthPart = padded.substring(20, 26);
-			String utf = "111110" + firstPart + "10" + secondPart + "10" 
-					+ thirdPart + "10" + fourthPart +
-					"10" + fifthPart;
-
-			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16), 
-					utf.substring(16, 24), utf.substring(24, 32), 
-					utf.substring(32, 40)};
-			String totalStrHex = "";
-			for(int i = 0; i < utfArray.length; i++){
-				int decimal = Integer.parseInt(utfArray[i], 2);
-				String hexStr = Integer.toString(decimal, 16);
-				totalStrHex = totalStrHex + hexStr + ",";
+		else if (b.length == 3) {
+			if ((b[0] & 0b11111111) == 0b00000000) {
+				byte[] actualByteArray = {b[1], b[2]};
+				return convertToUtf8HexString(actualByteArray);
 			}
-			return totalStrHex;
-		}
-		else if (length < 32)
-		{
-			String strFirst = str.substring(0, str.length() - 16);
-			String strSecond = str.substring(str.length() - 16, str.length());
-
-			String paddedFirst = String.format("%016d", 
-					Long.parseLong(strFirst));
-			String padded = paddedFirst + strSecond;
-
-			String firstPart = padded.substring(0, 1);
-			String secondPart = padded.substring(1, 7);
-			String thirdPart = padded.substring(7, 13);
-			String fourthPart = padded.substring(13, 19);
-			String fifthPart = padded.substring(19, 25);
-			String sixthPart = padded.substring(25, 31);
-			String utf = "1111110" + firstPart + "10" + secondPart + "10" 
-					+ thirdPart + "10" + fourthPart +
-					"10" + fifthPart + "10" + sixthPart;
-		
-			String[] utfArray = {utf.substring(0, 8), utf.substring(8, 16), 
-					utf.substring(16, 24), utf.substring(24, 32), 
-					utf.substring(32, 40), utf.substring(40, 48)};
-			String totalStrHex = "";
-			for(int i = 0; i < utfArray.length; i++){
-				int decimal = Integer.parseInt(utfArray[i], 2);
-				String hexStr = Integer.toString(decimal, 16);
-				totalStrHex = totalStrHex + hexStr + ",";
+			else if ((b[0] & 0b11100000) == 0b00000000) {
+				if ((b[0] & 0b00010000) == 0b00010000) {
+					int inRange = 0b00000000;
+					if (!(inRange == ((b[0] | 0b00001111)))) {
+						throw new IllegalArgumentException("Unicode character is out of range");
+					}
+					else {
+						byte [] returnedByteArray  = 
+							{(byte) ((b[0] >> 2) | 0b11110000), (byte) (((((byte) (b[0] << 4)) | (b[1] >> 4)) & 0b00111111) | 0b10000000), (byte) (((((byte) (b[1] << 2)) | b[2] >> 6) & 0b00111111) | 0b10000000), (byte) ((b[2] & 0b00111111) | 0b10000000)};
+						return returnedByteArray;
+					}
+				}
+				else {
+					byte [] returnedByteArray  = 
+						{(byte) ((b[0] >> 2) | 0b11110000), (byte) (((((byte) (b[0] << 4)) | (b[1] >> 4)) & 0b00111111) | 0b10000000), (byte) (((((byte) (b[1] << 2)) | b[2] >> 6) & 0b00111111) | 0b10000000), (byte) ((b[2] & 0b00111111) | 0b10000000)};
+					return returnedByteArray;
+				}   
 			}
-			return totalStrHex;
+			else {
+				throw new IllegalArgumentException("Unicode character is out of range");
+			}
 		}
-		else
-		{
-			throw new IllegalArgumentException("Invalid Codepoint");
+		else if (b.length == 4) {
+			if ((b[0] & 0b11111111) == 0b00000000) {
+				byte[] actualByteArray = {b[1], b[2], b[3]};
+				return convertToUtf8HexString(actualByteArray);
+			}
+			else{
+				throw new IllegalArgumentException("Unicode character is out of range");
+			}
+		}
+		else {
+			throw new IllegalArgumentException("Unicode character is out of range");
 		}
 	}
-	
+
 	private byte[] convertToUtf8HexByteArray(int codepoint) {
 		char c = (char)codepoint;
 		String temp = c + "";
 		return temp.getBytes(Charset.forName("UTF-8"));
 	}
-	
+
 	private void byteArrayToString(byte[] by) {
 		for (byte b : by) {
 			System.out.format("0x%x ", b);
